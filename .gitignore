@@ -1,0 +1,10 @@
+.env
+.env.*
+*.secret
+*.pem
+env_setup.sh
+live.json.new
+live.json.bak
+__pycache__/
+*.pyc
+.DS_Store

@@ -1,0 +1,49 @@
+name: Update live.json
+
+on:
+  schedule:
+    # ~05:30 UTC daily (06:30 Europe/Berlin in winter, 07:30 in summer)
+    - cron: "30 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Refresh live.json
+        env:
+          ETORO_API_KEY: ${{ secrets.ETORO_API_KEY }}
+          ETORO_USER_KEY: ${{ secrets.ETORO_USER_KEY }}
+        run: |
+          set +x
+          if [ -z "$ETORO_API_KEY" ] || [ -z "$ETORO_USER_KEY" ]; then
+            echo "Notice: ETORO_API_KEY and/or ETORO_USER_KEY are not set as repository secrets."
+            echo "Skipping the update so live.json is not overwritten."
+            echo "Add both at: https://github.com/alejogarcia9213-tech/alejandrogarcia-pro/settings/secrets/actions"
+            exit 0
+          fi
+          python scripts/update_live.py --write
+
+      - name: Commit live.json if changed
+        run: |
+          set +x
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- live.json; then
+            echo "live.json unchanged"
+            exit 0
+          fi
+          git add -- live.json
+          git commit -m "chore: refresh live.json from eToro Public API"
+          git push
