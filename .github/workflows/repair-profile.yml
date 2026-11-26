@@ -1,0 +1,38 @@
+name: Repair profile.jpg
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decode base64-text profile.jpg into a real JPEG
+        run: |
+          python3 - << 'PY'
+          from pathlib import Path
+          import base64
+          p = Path("profile.jpg")
+          raw = p.read_bytes()
+          if raw[:3] == b"\xff\xd8\xff":
+              print("already a jpeg; nothing to do")
+              raise SystemExit(0)
+          data = base64.b64decode(raw)
+          assert data[:3] == b"\xff\xd8\xff", data[:8]
+          p.write_bytes(data)
+          print("wrote jpeg", len(data), "bytes")
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- profile.jpg
+          if git diff --cached --quiet; then
+            echo "no change"
+            exit 0
+          fi
+          git commit -m "Fix profile.jpg as binary JPEG"
+          git push
